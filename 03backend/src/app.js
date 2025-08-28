@@ -14,4 +14,13 @@ app.use(express.json({
 app.use(express.urlencoded())
 app.use(express.static('public'));
 app.use(cookieParser());
+
+
+
+//routes
+import router from './Routes/user.route.js';
+
+//routers declaration
+app.use("/api/v1/users", router)
+
 export {app}
