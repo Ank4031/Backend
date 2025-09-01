@@ -5,34 +5,31 @@ import { User } from "../Models/user.model.js"
 import { Comment } from "../Models/comment.model.js"
 
 const CreateComment = asyncHandler( async(req, res) =>{
-    try {
-        const {video} = req.params
-        const {content} = req.body
-        if (!video || !content){
-            throw new ApiError(400,"content and video id is required")
-        }
     
-        const user = await User.findById(req.user?._id)
-
-        if(!user){
-            throw new ApiError(404,"unauthorized user")
-        }
-    
-        const usercomment = await Comment.create({
-            content,
-            video,
-            owner: user._id
-        })
-    
-        if(!usercomment){
-            throw new ApiError(400,"invalid content")
-        }
-    
-        return res.status(200)
-        .json(new ApiResponse(200,usercomment,"comment published sucessfully"))
-    } catch (error) {
-        throw new ApiError(500,error.message || "comment server error")
+    const {video} = req.params
+    const {content} = req.body
+    if (!video || !content){
+        throw new ApiError(400,"content and video id is required")
     }
+
+    const user = await User.findById(req.user?._id)
+
+    if(!user){
+        throw new ApiError(404,"unauthorized user")
+    }
+
+    const usercomment = await Comment.create({
+        content,
+        video,
+        owner: user._id
+    })
+
+    if(!usercomment){
+        throw new ApiError(400,"invalid content")
+    }
+
+    return res.status(200)
+    .json(new ApiResponse(200,usercomment,"comment published sucessfully"))
 })
 
 const UpdateComment = asyncHandler( async(req, res) =>{
@@ -56,7 +53,7 @@ const UpdateComment = asyncHandler( async(req, res) =>{
 
     console.log("-------------------------------------------");
     
-    if(req.user._id !== comment.owner){
+    if(req.user._id.toString() !== comment.owner.toString()){
         throw new ApiError(404,"unauthorized comment access")
     }
 
@@ -80,7 +77,7 @@ const DeleteComment = asyncHandler( async(req, res) =>{
         throw new ApiError(400,"no such comment is found")
     }
 
-    if(req.user._id !== comment.owner){
+    if(req.user._id.toString() !== comment.owner.toString()){
         throw new ApiError(404,"unauthorized comment access")
     }
 

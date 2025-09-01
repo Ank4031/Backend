@@ -4,12 +4,12 @@ import { CreateComment, DeleteComment, UpdateComment } from "../Controllers/comm
 
 const commentRoute = Router()
 
-commentRoute.route("/CreateComment/:video").post(
+commentRoute.route("/create/:video").post(
     verifyuser,
     CreateComment
 )
 
-commentRoute.route("/update-comment/:commentid").patch(
+commentRoute.route("/update/:commentid").patch(
     verifyuser,
     UpdateComment
 )
@@ -18,3 +18,5 @@ commentRoute.route("/delete/:commentid").delete(
     verifyuser,
     DeleteComment
 )
+
+export default commentRoute
