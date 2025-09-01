@@ -9,7 +9,8 @@ tweetRoute.route("/create").post(
     createTweet
 )
 
-tweetRoute.route("/get/:tweetid").get(
+tweetRoute.route("/get").get(
+    verifyuser,
     getTweet
 )
 
