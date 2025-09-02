@@ -22,11 +22,15 @@ import router from './Routes/user.route.js';
 import commentRoute from './Routes/comment.route.js';
 import videoRoute from './Routes/video.route.js';
 import tweetRoute from './Routes/tweet.route.js';
+import subcriptionRoute from './Routes/subsciption.route.js';
+import playlistRoute from './Routes/playlist.route.js';
 
 //routers declaration
 app.use("/api/v1/users", router)
 app.use("/api/v1/comment",commentRoute)
 app.use("/api/v1/video",videoRoute)
 app.use("/api/v1/tweet",tweetRoute)
+app.use("/api/v1/sub",subcriptionRoute)
+app.use("/api/v1/playlist",playlistRoute)
 
 export {app}
