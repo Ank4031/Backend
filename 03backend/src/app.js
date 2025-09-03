@@ -25,6 +25,8 @@ import tweetRoute from './Routes/tweet.route.js';
 import subcriptionRoute from './Routes/subsciption.route.js';
 import playlistRoute from './Routes/playlist.route.js';
 import likesRoute from './Routes/likes.route.js';
+import dashboardRoute from './Routes/dashboard.route.js';
+
 
 //routers declaration
 app.use("/api/v1/users", router)
@@ -34,5 +36,6 @@ app.use("/api/v1/tweet",tweetRoute)
 app.use("/api/v1/sub",subcriptionRoute)
 app.use("/api/v1/playlist",playlistRoute)
 app.use("/api/v1/likes",likesRoute)
+app.use("/api/v1/dashboard",dashboardRoute)
 
 export {app}
