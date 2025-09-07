@@ -1,15 +1,19 @@
-import React, {useRef} from "react";
+import React, {useRef, useState} from "react";
 import {Input} from "./index.js"
 import {Button} from "./index.js";
+import {useDispatch} from "react-redux"
+import { loginUser } from "../store/Auth.slice.js";
+import { useNavigate } from "react-router-dom";
 
 function Login(){
-
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
+    const dispatch = useDispatch()
     const usernameref = useRef();
     const passwordref = useRef();
     async function login(e){
         e.preventDefault();
-        console.log("username: ",usernameref.current.value);
-        console.log("password: ",passwordref.current.value);
+        console.log("username: ",usernameref.current.value);//-------------------------------------------->
         const res = await fetch("http://localhost:3000/api/login",{
             method:"POST",
             headers:{
@@ -17,8 +21,16 @@ function Login(){
             },
             body: JSON.stringify({username: usernameref.current.value, password: passwordref.current.value})
         });
-        const data = await res.text()
-        console.log(data);
+        
+        if(!res.ok){
+            const errordata = await res.json().catch(()=>{});
+            setError(errordata.message || "Something went wrong login-1")
+        }else{
+            const data = await res.json();
+            console.log(data); //----------------------------------------------------->
+            dispatch(loginUser(data));
+            navigate("/")
+        }
     }
     return (
         <div className="w-full flex flex-col justify-center items-center bg-white">
@@ -29,6 +41,9 @@ function Login(){
                 </div>
                 <div className="w-full flex flex-col justify-center items-center">
                     <Button>Submit</Button>
+                </div>
+                <div>
+                    <h2>{error}</h2>
                 </div>
             </form>
         </div>

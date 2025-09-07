@@ -6,6 +6,7 @@ import Input from "./Input.jsx";
 import Header from "./header/Header.jsx";
 import Button from "./Button.jsx";
 import Footer from "./footer/Footer.jsx";
+import Logout from "./LogoutBtn.jsx";
 
 
-export {Home, Register,Login, About, Input, Header, Button, Footer}
+export {Home, Register,Login, About, Input, Header, Button, Footer, Logout}
