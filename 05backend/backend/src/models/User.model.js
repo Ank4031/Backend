@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
             required: true,
             unique: true
         },
-        emial:{
+        email:{
             type: String,
             required: true,
             unique: true
@@ -33,17 +33,17 @@ const userSchema = new mongoose.Schema(
     }
 )
 
-userSchema.pre("save",async function(){
-    if(this.isModified(this.password)) return next();
+userSchema.pre("save",async function(next){
+    if(!this.isModified("password")) return next();
     this.password = bcrypt.hashSync(this.password,10);
     next();
 })
 
-userSchema.method.checkPassword = async function(password){
+userSchema.methods.checkPassword = async function(password){
     return bcrypt.compareSync(password,this.password);
 }
 
-userSchema.method.genAccessToken = async function(){
+userSchema.methods.genAccessToken = async function(){
     return await jwt.sign({
         id: this._id,
         name: this.name,
@@ -55,7 +55,7 @@ userSchema.method.genAccessToken = async function(){
     })
 }
 
-userSchema.method.genRefreshToken = async function(){
+userSchema.methods.genRefreshToken = async function(){
     return await jwt.sign({
         id: this._id,
         name: this.name,
