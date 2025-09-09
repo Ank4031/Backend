@@ -6,9 +6,20 @@ import { useNavigate } from "react-router-dom";
 function Logout(){
     const dispatch = useDispatch()
     const navigate = useNavigate()
-    function logout(){
-        dispatch(logoutUser());
-        navigate("/login")
+    const logout = async()=>{
+        const res = await fetch("http://localhost:3000/api/v1/user/logout",{
+            method:"POST",
+            credentials:"include"
+        })
+        if(!res.ok){
+            const errordata = await res.json()
+            console.log("[*] login error",errordata);
+        }else{
+            const data = await res.json()
+            console.log("[*] logged out ",data);
+            dispatch(logoutUser());
+            navigate("/login")
+        }
     }
     return(
         <button onClick={logout}>

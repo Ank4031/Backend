@@ -1,13 +1,13 @@
 import { AsyncHandler } from "../Utilities/AsyncHandler.js"
-import { ApiError } from "../Utilities/ApiError,js"
+import { ApiError } from "../Utilities/ApiError.js"
 import { User } from "../models/User.model.js"
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv"
 dotenv.config()
 
-export const UserVerify = AsyncHandler( async(req,res)=>{
+export const UserVerify = AsyncHandler( async(req,res,next)=>{
     try{
-        console.log("[*] token: ",req.token);
+        console.log("[*] token: ",req.cookies);
         console.log("-------------------------------------------------------");
         
         console.log("[*] header: ",req.header);
@@ -23,13 +23,15 @@ export const UserVerify = AsyncHandler( async(req,res)=>{
         console.log("[*] decodedtoken: ",decodedtoken);
         console.log("-------------------------------------------------------");
         
-        const user = await User.findById(decodedtoken?._id).select("-password -refreshtoken")
-    
+        const user = await User.findById(decodedtoken?.id).select("-password -refreshtoken")
+        
         if (!user){
             throw new ApiError(401,"invalid accesstoken")
         }
     
         req.user = user
+        console.log("==================|||||||========================");
+        
         next()
     }
     catch(error){

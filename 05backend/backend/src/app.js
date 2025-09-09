@@ -1,15 +1,30 @@
 import express from "express"
 import cors from "cors"
-import cookieParser from "cookie-Parser"
+import cookieParser from "cookie-parser"
 
 const app = express()
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: "*", credentials: true }))
+app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(cookieParser())
 
 import UserRoute from "./routes/User.route.js";
 
 app.use("/api/v1/user",UserRoute)
+
+app.use((err, req, res, next) => {
+  console.error("[ERROR]:", err);
+
+  const statusCode = err.status || 500;
+  const message = err.message || "Internal server error";
+
+  return res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+    errors: err.errors || []
+  });
+});
+
 
 export {app}

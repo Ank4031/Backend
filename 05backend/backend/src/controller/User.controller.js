@@ -79,7 +79,7 @@ const LoginUser = AsyncHandler(async(req,res)=>{
 
     const options={
         httpOnly: true,
-        secure: true,
+        secure: false,
     }
 
     return res.status(200)
@@ -88,4 +88,39 @@ const LoginUser = AsyncHandler(async(req,res)=>{
     .json(new ApiResponce(200,{user:loginuser, refreshtoken,accesstoken},"login successfull"))
 
 })
-export {RegisterUser, LoginUser}
+
+const CheckLogin = AsyncHandler(async(req,res)=>{
+    const user = req.user
+    console.log("--------------------------------------------------------->");
+    console.log("[*]user: ",user);
+    if(!user){
+        throw new ApiError(400,"user not logged in")
+    }
+
+    return res.status(200)
+    .json(new ApiResponce(200,user,"user is logged in"))
+})
+
+const UserLogout = AsyncHandler(async(req,res)=>{
+    const loddedinuser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshtoken: undefined
+            }
+        }
+    )
+
+    const options={
+        httpOnly:true,
+        secure:true
+    }
+
+    return res.status(200)
+    .cookie("accesstoken",options)
+    .cookie("refreshtoken",options)
+    .json(new ApiResponce(200,{},"user logged out"))
+
+})
+
+export {RegisterUser, LoginUser, CheckLogin, UserLogout}

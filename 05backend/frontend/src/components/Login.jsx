@@ -14,16 +14,20 @@ function Login(){
     async function login(e){
         e.preventDefault();
         console.log("username: ",usernameref.current.value);//-------------------------------------------->
-        const res = await fetch("http://localhost:3000/api/login",{
+        const res = await fetch("http://localhost:3000/api/v1/user/login",{
             method:"POST",
+            credentials: "include",
             headers:{
                 "Content-Type":"application/json"
             },
             body: JSON.stringify({username: usernameref.current.value, password: passwordref.current.value})
         });
         
+        console.log("[*] respose: ",res.ok);
+        
         if(!res.ok){
             const errordata = await res.json().catch(()=>{});
+            console.log(errordata);
             setError(errordata.message || "Something went wrong login-1")
         }else{
             const data = await res.json();
@@ -43,7 +47,7 @@ function Login(){
                     <Button>Submit</Button>
                 </div>
                 <div>
-                    <h2>{error}</h2>
+                    <h2 className="w-full font-bold text-red-500 text-center">{error}</h2>
                 </div>
             </form>
         </div>
