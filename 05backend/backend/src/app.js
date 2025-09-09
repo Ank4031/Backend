@@ -9,8 +9,10 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(cookieParser())
 
 import UserRoute from "./routes/User.route.js";
+import RoomRoute from "./routes/Room.route.js";
 
 app.use("/api/v1/user",UserRoute)
+app.use("/api/v1/room",RoomRoute)
 
 app.use((err, req, res, next) => {
   console.error("[ERROR]:", err);

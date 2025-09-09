@@ -4,42 +4,37 @@ import {Input} from "./index.js";
 import { Addmessage } from "../store/Chat.slice.js";
 
 function Chat(){
-    const messages = useSelector(state=>state.chat.messages)
-    const token = useSelector(state=>state.auth.userData?.token)
     const [error, setError] = useState("")
+    const [rooms, setRooms] = useState([])
     const dispatch = useDispatch()
 
     useEffect(()=>{
-        const fetchmessages = async () =>{
-            const res = await fetch("/api/chat",{
+        const getrooms = async ()=>{
+            const res = await fetch("http://localhost:3000/api/v1/room/getrooms",{
                 method:"GET",
-                headers:{
-                    "Authorization": `Bearer ${token}`
-                }
+                credentials:"include"
             })
             if(!res.ok){
-                const dataError = await res.json().catch(()=>{})
-                setError(dataError?.message || "something is wrong in chat-1")
+                const errordata = await res.json()
+                console.log(errordata);
+                setError(errordata.message)
             }else{
                 const data = await res.json()
-                console.log("[*] data: ",data);
-                dispatch(Addmessage(data))
+                console.log(data.data);
+                setRooms(data.data)
             }
         }
-        fetchmessages()
-    },[dispatch, token])
+        getrooms()
+    },[])
+
     return (
-        <div className="w-full bg-white text-center">
-            <div>
-                <ul>
-                    {messages.map(item=>(
-                        <li key={item.id}>{item.text}</li>
-                    ))}
-                </ul>
-            </div>
-            <div>
-                <Input label="message" type="text" className="border rounded-2xl my-2 px-3"/>
-                <button type="text" className="border rounded-2xl my-2 px-3">send</button>
+        <div className="w-full bg-white flex flex-col justify-center items-center">
+            <div className="w-1/3 ">
+                {rooms.map(item=>(
+                    <div key={item.name} className="w-full flex justify-center items-center my-3">
+                        <div><h2>Join the chat:</h2></div><button className="rounded-l-2xl bg-blue-300 ml-2 px-2">{item.name}</button><button className="rounded-r-2xl bg-red-300 px-2">delete</button>
+                    </div>
+                ))}
             </div>
             <div>
                 {error}
