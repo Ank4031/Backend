@@ -1,7 +1,7 @@
 import React, {useRef, useState} from "react";
 import {Input} from "./index.js"
 import {Button} from "./index.js";
-import {useDispatch} from "react-redux"
+import {useDispatch, useSelector} from "react-redux"
 import { loginUser } from "../store/Auth.slice.js";
 import { useNavigate } from "react-router-dom";
 
@@ -31,7 +31,7 @@ function Login(){
             setError(errordata.message || "Something went wrong login-1")
         }else{
             const data = await res.json();
-            console.log(data); //----------------------------------------------------->
+            console.log("[*] user data: ",data); //----------------------------------------------------->
             dispatch(loginUser(data));
             navigate("/")
         }

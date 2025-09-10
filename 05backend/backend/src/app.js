@@ -10,9 +10,11 @@ app.use(cookieParser())
 
 import UserRoute from "./routes/User.route.js";
 import RoomRoute from "./routes/Room.route.js";
+import MessageRoute from "./routes/Message.route.js";
 
 app.use("/api/v1/user",UserRoute)
 app.use("/api/v1/room",RoomRoute)
+app.use("/api/v1/message",MessageRoute)
 
 app.use((err, req, res, next) => {
   console.error("[ERROR]:", err);

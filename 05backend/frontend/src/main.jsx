@@ -10,6 +10,7 @@ import Register from './components/Register.jsx'
 import { Provider } from 'react-redux'
 import { store } from './store/Store.js'
 import Chat from './components/Chat.jsx'
+import Roomchat from './components/Roomchat.jsx'
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
       {
         path: "chat",
         element: <Chat/>
+      },
+      {
+        path: "roomchat/:roomid",
+        element: <Roomchat/>
       }
     ]
   }
