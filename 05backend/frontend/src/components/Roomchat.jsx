@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../store/Auth.slice.js";
 
 function Roomchat(){
-    const [showchat,setShowchat] = useState(true)
     const [messages,setMessages] = useState([])
     const [error, setError] = useState("")
     const messageref = useRef()
@@ -20,18 +19,15 @@ function Roomchat(){
     useEffect(()=>{
 
         const check = async ()=>{
-            console.log("[*] fetching the data--------------------------->");
-            
             const res = await fetch("http://localhost:3000/api/v1/user/checklogin",{
                 method:"GET",
                 credentials:"include"
             })
-            console.log(res.ok);
+            // console.log(res.ok);
             if(!res.ok){
                 navigate("/login")
             }else{
                 const data = await res.json();
-                console.log(data);
                 dispatch(loginUser(data));
             }
         }
@@ -39,7 +35,6 @@ function Roomchat(){
 
 
         console.log("[*] id: ",roomid);
-        setShowchat(pre=>!pre);
 
         const readmessages = async()=>{
             const res = await fetch(`http://localhost:3000/api/v1/message/read/${roomid}`,{
@@ -54,8 +49,6 @@ function Roomchat(){
                 const data = await res.json()
                 console.log("[*] messages data",data.data);
                 setMessages(data.data)
-                console.log('[*] messages: ',messages);
-                
             }
         }
         readmessages()
@@ -64,10 +57,11 @@ function Roomchat(){
 
         ws.current.onopen = ()=>{
             console.log("[*] setting up the connection");
+            ws.current.send(JSON.stringify({type:"join",room:roomid}))
         }
 
-        ws.current.onmessage = (event)=>{
-            console.log("[*] server message: ",event.data);
+        ws.current.onmessage = (message)=>{
+            console.log("[*] server message: ",message);
             readmessages()
         }
 
@@ -79,9 +73,7 @@ function Roomchat(){
 
     const sendMessage = ()=>{
         const message = messageref.current.value
-        console.log("[*] typed message: ",message);
-        ws.current.send(message)
-        console.log("[*] sender: ",user.data);
+        messageref.current.value=""
         const sendMsg = async()=>{
             const res = await fetch(`http://localhost:3000/api/v1/message/add/${roomid}`,{
                 method:"POST",
@@ -99,6 +91,7 @@ function Roomchat(){
                 const data= await res.json()
                 console.log("[*] Data: ",data);
                 setMessages(pre=>[...pre,data.data])
+                ws.current.send(JSON.stringify({type:"message",...data.data}))
             }
         }
         sendMsg()
@@ -108,6 +101,7 @@ function Roomchat(){
         console.log("[*] connection is closed");
         ws.current.close()
         setMessages([])
+        navigate("/chat")
     }
 
     const deleteall = async()=>{
@@ -122,23 +116,30 @@ function Roomchat(){
         }else{
             setMessages([])
             console.log("all messages deleted");
+            ws.current.send(JSON.stringify({type:"message", text:"", room:roomid}))
         }
     }
 
     return(
         <div className="w-full bg-white flex flex-col justify-center items-center my-3">
             <div className="w-full flex flex-col justify-center items-center">
-                <ul className="w-1/3 flex flex-col justify-center items-center">
+                <table className="w-1/3 justify-center items-center">
                     {messages.map(msg=>(
-                        <li className="w-full flex justify-center items-center"><p className={`mr-2 ${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? "sender:" : "you:" }</p><p>{msg.text}</p></li>
+                        <tr className=""><td className={`${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? "sender:" : "you:" }</td><td>{msg.text}</td></tr>
                     ))}
-                </ul>
+                </table>
             </div>
             <div className="w-full bg-white flex flex-col justify-center items-center text-center">
-                <Input className="border rounded-2xl text-black px-3" label="Message" type="text" ref={messageref}/><button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={sendMessage}>send</button>
-                <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={connectionClose}>close</button>
-                <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={()=>{navigate("/chat")}}>Go to Rooms</button>
-                <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={deleteall}>delete all</button>
+                <p>-------------------------------------------------------------------------</p>
+                <Input className="border rounded-2xl text-black px-3" label="Message" type="text" ref={messageref}/>
+                <div className="w-full bg-white flex justify-center items-center text-center">
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={sendMessage}>send</button>
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={deleteall}>delete all</button>
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={connectionClose}>close</button>
+                </div>
+                <div className="w-full bg-white flex justify-center items-center text-center">
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={()=>{navigate("/chat")}}>Go to Rooms</button>
+                </div>
             </div>
             <div>
                 {error}

@@ -34,7 +34,7 @@ const getRooms = AsyncHandler(async(req,res)=>{
     if(!rooms){
         throw new ApiError(400,"no rooms are found")
     }
-    console.log("[*]rooms: ",rooms);
+    // console.log("[*]rooms: ",rooms);
     
     return res.status(200)
     .json(new ApiResponce(200,rooms,"all rooms are fetched"))

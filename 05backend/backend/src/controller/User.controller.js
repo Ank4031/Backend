@@ -91,8 +91,8 @@ const LoginUser = AsyncHandler(async(req,res)=>{
 
 const CheckLogin = AsyncHandler(async(req,res)=>{
     const user = req.user
-    console.log("--------------------------------------------------------->");
-    console.log("[*]user: ",user);
+    // console.log("--------------------------------------------------------->");
+    // console.log("[*]user: ",user);
     if(!user){
         throw new ApiError(400,"user not logged in")
     }

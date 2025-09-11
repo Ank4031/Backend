@@ -13,7 +13,7 @@ function Login(){
     const passwordref = useRef();
     async function login(e){
         e.preventDefault();
-        console.log("username: ",usernameref.current.value);//-------------------------------------------->
+        // console.log("username: ",usernameref.current.value);//-------------------------------------------->
         const res = await fetch("http://localhost:3000/api/v1/user/login",{
             method:"POST",
             credentials: "include",
@@ -23,7 +23,7 @@ function Login(){
             body: JSON.stringify({username: usernameref.current.value, password: passwordref.current.value})
         });
         
-        console.log("[*] respose: ",res.ok);
+        // console.log("[*] respose: ",res.ok);
         
         if(!res.ok){
             const errordata = await res.json().catch(()=>{});

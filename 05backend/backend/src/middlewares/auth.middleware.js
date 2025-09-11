@@ -7,11 +7,11 @@ dotenv.config()
 
 export const UserVerify = AsyncHandler( async(req,res,next)=>{
     try{
-        console.log("[*] token: ",req.cookies);
-        console.log("-------------------------------------------------------");
+        // console.log("[*] token: ",req.cookies);
+        // console.log("-------------------------------------------------------");
         
-        console.log("[*] header: ",req.header);
-        console.log("-------------------------------------------------------");
+        // console.log("[*] header: ",req.header);
+        // console.log("-------------------------------------------------------");
         
         const token = req.cookies?.accesstoken || req.header("Authorization")?.replace("Bearer ","")
         if(!token){
@@ -20,8 +20,8 @@ export const UserVerify = AsyncHandler( async(req,res,next)=>{
         
         const decodedtoken = await jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-        console.log("[*] decodedtoken: ",decodedtoken);
-        console.log("-------------------------------------------------------");
+        // console.log("[*] decodedtoken: ",decodedtoken);
+        // console.log("-------------------------------------------------------");
         
         const user = await User.findById(decodedtoken?.id).select("-password -refreshtoken")
         
