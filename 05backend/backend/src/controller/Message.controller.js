@@ -32,10 +32,12 @@ const addMessage = AsyncHandler(async(req,res)=>{
 
 const readMessage = AsyncHandler(async(req,res)=>{
     const {roomid} = req.params
+    //check for roomid
     if(!roomid){
         throw new ApiError(400,"roomid is needed")
     }
 
+    //get all the messages form the room
     const messages = await Message.find({
         room:roomid
     })

@@ -101,6 +101,16 @@ const CheckLogin = AsyncHandler(async(req,res)=>{
     .json(new ApiResponce(200,user,"user is logged in"))
 })
 
+const getUsers = AsyncHandler(async(req,res)=>{
+    const users = await User.find().select("_id name")
+    if(!users){
+        throw new ApiError(400,"users cannot be fetched")
+    }
+
+    return res.status(200)
+    .json(new ApiResponce(200,users,"users are fetched succssfully"))
+})
+
 const UserLogout = AsyncHandler(async(req,res)=>{
     const loddedinuser = await User.findByIdAndUpdate(
         req.user._id,
@@ -123,4 +133,4 @@ const UserLogout = AsyncHandler(async(req,res)=>{
 
 })
 
-export {RegisterUser, LoginUser, CheckLogin, UserLogout}
+export {RegisterUser, LoginUser, CheckLogin, UserLogout, getUsers}

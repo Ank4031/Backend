@@ -8,6 +8,7 @@ import { loginUser } from "../store/Auth.slice.js";
 
 function Roomchat(){
     const [messages,setMessages] = useState([])
+    const [users,setUsers] = useState([])
     const [error, setError] = useState("")
     const messageref = useRef()
     const ws = useRef(null)
@@ -18,6 +19,7 @@ function Roomchat(){
 
     useEffect(()=>{
 
+        //check if the user is logged in
         const check = async ()=>{
             const res = await fetch("http://localhost:3000/api/v1/user/checklogin",{
                 method:"GET",
@@ -33,9 +35,7 @@ function Roomchat(){
         }
         check();
 
-
-        console.log("[*] id: ",roomid);
-
+        //get all the messages from the database for the rromid
         const readmessages = async()=>{
             const res = await fetch(`http://localhost:3000/api/v1/message/read/${roomid}`,{
                 method:"GET",
@@ -47,30 +47,58 @@ function Roomchat(){
                 setError(errordata.message || "messages cannot be fetched")
             }else{
                 const data = await res.json()
-                console.log("[*] messages data",data.data);
+                // console.log("[*] messages data",data.data);
                 setMessages(data.data)
             }
         }
         readmessages()
 
+        //get users for the roomid [NEED UPDATES FOR BETTER PERFORMANCE]
+        const getUsers = async()=>{
+            const res = await fetch(`http://localhost:3000/api/v1/user/getusers`,{
+                method:"GET",
+                credentials:"include"
+            })
+            if(!res.ok){
+                const errordata = await res.json()
+                setError(errordata.message || "users cannot be fetched")
+            }else{
+                const data = await res.json()
+                // console.log("[*] users: ",data.data);
+                setUsers(data.data)
+            }
+        }
+        getUsers()
+
+        //start the websocket
         ws.current = new WebSocket("ws://localhost:3000")
 
+        //open the connection
         ws.current.onopen = ()=>{
             console.log("[*] setting up the connection");
             ws.current.send(JSON.stringify({type:"join",room:roomid}))
         }
 
+        //Act when a message is recieved
         ws.current.onmessage = (message)=>{
-            console.log("[*] server message: ",message);
+            // console.log("[*] server message: ",message);
             readmessages()
         }
 
+        //close the connection
         ws.current.onclose = () => {
             console.log("Disconnected");
         }
 
     },[dispatch])
 
+    //get the username who send the messages to the reciever
+    const getusername = (id)=>{
+        const sender = users.find(user=> user._id === id)
+        return sender? sender.name : "undefined"
+    }
+
+    //send the message in the chat
     const sendMessage = ()=>{
         const message = messageref.current.value
         messageref.current.value=""
@@ -89,7 +117,7 @@ function Roomchat(){
                 setError(errordata.message)
             }else{
                 const data= await res.json()
-                console.log("[*] Data: ",data);
+                // console.log("[*] Data: ",data);
                 setMessages(pre=>[...pre,data.data])
                 ws.current.send(JSON.stringify({type:"message",...data.data}))
             }
@@ -97,6 +125,7 @@ function Roomchat(){
         sendMsg()
     }
 
+    //close the connection by user
     const connectionClose = ()=>{
         console.log("[*] connection is closed");
         ws.current.close()
@@ -104,6 +133,7 @@ function Roomchat(){
         navigate("/chat")
     }
 
+    //delete all the messages from the chat for all the user
     const deleteall = async()=>{
         const res = await fetch(`http://localhost:3000/api/v1/message/deleteall/${roomid}`,{
             method:"DELETE",
@@ -123,10 +153,12 @@ function Roomchat(){
     return(
         <div className="w-full bg-white flex flex-col justify-center items-center my-3">
             <div className="w-full flex flex-col justify-center items-center">
-                <table className="w-1/3 justify-center items-center">
-                    {messages.map(msg=>(
-                        <tr className=""><td className={`${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? "sender:" : "you:" }</td><td>{msg.text}</td></tr>
-                    ))}
+                <table>
+                    <tbody>
+                        {messages.map(msg=>(
+                            <tr key={msg._id}><td className={`text-center pr-3 ${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? `${getusername(msg.sender)}:` : "you:" }</td><td>{msg.text}</td></tr>
+                        ))}
+                    </tbody>
                 </table>
             </div>
             <div className="w-full bg-white flex flex-col justify-center items-center text-center">
@@ -138,7 +170,7 @@ function Roomchat(){
                     <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={connectionClose}>close</button>
                 </div>
                 <div className="w-full bg-white flex justify-center items-center text-center">
-                    <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={()=>{navigate("/chat")}}>Go to Rooms</button>
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={()=>{connectionClose();navigate("/chat")}}>Go to Rooms</button>
                 </div>
             </div>
             <div>

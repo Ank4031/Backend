@@ -9,9 +9,12 @@ import { useRef } from "react";
 function Home(){
     const [showform,setShowform] = useState(false)
     const [error,setError] = useState("");
+    const user = useSelector(state=>state.auth.userData)
     const roomname = useRef();
+    const passcode = useRef();
     const navigate = useNavigate();
     const dispatch = useDispatch();
+
     useEffect(()=>{
         const check = async ()=>{
             // console.log("[*] fetching the data--------------------------->");
@@ -33,18 +36,24 @@ function Home(){
         check();
     },[dispatch])
 
-
+    //show form to create a new user
     const showForm = ()=>{
         setShowform(pre=>!pre)
     }
-
+    //submit the details to create the new room
     const submitForm = async(e)=>{
         e.preventDefault();
         const room = roomname.current.value
-        console.log("[*] form data: ",room);
-        const res = await fetch(`http://localhost:3000/api/v1/room/create/${room}`,{
+        const code = passcode.current.value
+        const userid = user.data._id
+        console.log("[*] form data: room => "+ room+" passocde => "+code+" userid => "+userid);
+        const res = await fetch(`http://localhost:3000/api/v1/room/create/${userid}`,{
             method:"POST",
-            credentials:"include"
+            credentials:"include",
+            headers:{
+                "Content-Type":"Application/json"
+            },
+            body: JSON.stringify({roomname:room,passcode:code})
         })
         if(!res.ok){
             const errordata = await res.json()
@@ -52,10 +61,8 @@ function Home(){
             setError(errordata.message||"something went wrong in room creation")
         }else{
             const data = await res.json()
-            console.log(data);
             setError(data.message);
         }
-        
     }
 
     return (
@@ -65,8 +72,9 @@ function Home(){
                 <div className="w-full my-4"><button className="border bg-gray-300 rounded-2xl px-2" onClick={showForm}>Create new Room</button></div>
                 <div className="w-full">
                     {
-                        showform && <form className="w-full" onSubmit={(e)=>submitForm(e)}>
+                        showform && <form className="w-full" onSubmit={(e)=>{submitForm(e)}}>
                             <Input label="Room name" type="text" className="border rounded-2xl my-2 px-3" ref={roomname}/>
+                            <Input label="Passcode" type="text" className="border rounded-2xl my-2 px-3" ref={passcode}/>
                             <button className="border bg-gray-300 rounded-2xl px-2 mx-2">Create</button>
                             <button className="border bg-gray-300 rounded-2xl px-2" onClick={showForm}>Hide</button>
                         </form>
