@@ -11,6 +11,8 @@ function Login(){
     const dispatch = useDispatch()
     const usernameref = useRef();
     const passwordref = useRef();
+
+    //login the user and navigate
     async function login(e){
         e.preventDefault();
         // console.log("username: ",usernameref.current.value);//-------------------------------------------->
@@ -31,11 +33,12 @@ function Login(){
             setError(errordata.message || "Something went wrong login-1")
         }else{
             const data = await res.json();
-            console.log("[*] user data: ",data); //----------------------------------------------------->
+            // console.log("[*] user data: ",data); //----------------------------------------------------->
             dispatch(loginUser(data));
             navigate("/")
         }
     }
+    
     return (
         <div className="w-full flex flex-col justify-center items-center bg-white">
             <form onSubmit={login}>
