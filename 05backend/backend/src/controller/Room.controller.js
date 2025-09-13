@@ -130,15 +130,16 @@ const deleteroom = AsyncHandler(async(req,res)=>{
         console.log("deleting for the creator");
         
         const deleteuserroom = await Joinedrooms.deleteMany({
-            user:req.user._id
+            room:roomid
         })
         if(!deleteuserroom){
             throw new ApiError(400,"cannot delete room")
         }
 
         const deleteownerroom = await Room.deleteOne({
-            creator:creatorid
+            _id:roomid,
         }) 
+
         if(!deleteownerroom){
             throw new ApiError(400,"cannot delete the room from origin")
         }

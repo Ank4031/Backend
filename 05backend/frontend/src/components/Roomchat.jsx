@@ -10,6 +10,10 @@ function Roomchat(){
     const [messages,setMessages] = useState([])
     const [users,setUsers] = useState([])
     const [error, setError] = useState("")
+    const [openid, setOpenid] = useState("")
+    const [followupdate, setFollowupdate] = useState(false)
+    const [updatemsgid, setUpdatemsgid] = useState("")
+    const chatmessage = useRef()
     const messageref = useRef()
     const ws = useRef(null)
     const {roomid} = useParams()
@@ -99,30 +103,53 @@ function Roomchat(){
     }
 
     //send the message in the chat
-    const sendMessage = ()=>{
+    const sendMessage = async()=>{
         const message = messageref.current.value
         messageref.current.value=""
-        const sendMsg = async()=>{
-            const res = await fetch(`http://localhost:3000/api/v1/message/add/${roomid}`,{
-                method:"POST",
+        if (followupdate){
+            console.log("msgid=>"+updatemsgid+" text=>"+message);
+            const res = await fetch(`http://localhost:3000/api/v1/message/updatemsg/${updatemsgid}`,{
+                method:"PATCH",
                 credentials:"include",
                 headers:{
-                    "Content-Type":"application/json"
+                    "Content-Type":"Application/json"
                 },
-                body: JSON.stringify({message, userid:user.data._id})
+                body: JSON.stringify({text:`${message}: (updated)`})
             })
             if(!res.ok){
-                const errordata= await res.json()
-                console.log("[*] error: ",errordata);
-                setError(errordata.message)
+                const errordata = await res.json()
+                // console.log("[*] message delete error: ",errordata);
+                setError(errordata.message || "cannont update message 1")
             }else{
-                const data= await res.json()
-                // console.log("[*] Data: ",data);
-                setMessages(pre=>[...pre,data.data])
-                ws.current.send(JSON.stringify({type:"message",...data.data}))
+                const data = await res.json()
+                // console.log("[*] message delete data: ",data);
+                ws.current.send(JSON.stringify({type:"message", text:"", room:roomid}))
             }
+            setUpdatemsgid("")
+            setFollowupdate(pre=>!pre)
+        }else{
+            const sendMsg = async()=>{
+                const res = await fetch(`http://localhost:3000/api/v1/message/add/${roomid}`,{
+                    method:"POST",
+                    credentials:"include",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body: JSON.stringify({message, userid:user.data._id})
+                })
+                if(!res.ok){
+                    const errordata= await res.json()
+                    console.log("[*] error: ",errordata);
+                    setError(errordata.message)
+                }else{
+                    const data= await res.json()
+                    // console.log("[*] Data: ",data);
+                    setMessages(pre=>[...pre,data.data])
+                    ws.current.send(JSON.stringify({type:"message",...data.data}))
+                }
+            }
+            sendMsg()
         }
-        sendMsg()
     }
 
     //close the connection by user
@@ -150,13 +177,40 @@ function Roomchat(){
         }
     }
 
+    //delete message
+    const deletemsg = async(msgid)=>{
+        const res = await fetch(`http://localhost:3000/api/v1/message/deletemsg/${msgid}`,{
+            method:"DELETE",
+            credentials:"include"
+        })
+        if(!res.ok){
+            const errordata = await res.json()
+            // console.log("[*] message delete error: ",errordata);
+            setError(errordata.message || "cannont delete message 1")
+        }else{
+            const data = await res.json()
+            // console.log("[*] message delete data: ",data);
+            ws.current.send(JSON.stringify({type:"message", text:"", room:roomid}))
+        }
+    }
+
     return(
         <div className="w-full bg-white flex flex-col justify-center items-center my-3">
             <div className="w-full flex flex-col justify-center items-center">
                 <table>
                     <tbody>
                         {messages.map(msg=>(
-                            <tr key={msg._id}><td className={`text-center pr-3 ${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? `${getusername(msg.sender)}:` : "you:" }</td><td>{msg.text}</td></tr>
+                            <tr key={msg._id}><td onClick={()=>{setOpenid(pre=>(pre===msg._id?null:msg._id))}} className={`text-center pr-3 ${msg.sender !== user.data._id ? "text-red-500":"text-green-500"}`}>{msg.sender !== user.data._id ? `${getusername(msg.sender)}:` : "you:" }
+                            {
+                                openid === msg._id && msg.sender === user.data._id &&
+                                <div className="absolute mt-1 w-28 rounded-md bg-white shadow-lg border z-10">
+                                    <button onClick={()=>{deletemsg(msg._id)}} className="rounded-2xl bg-blue-300 px-2 my-2 mr-2">Delete</button>
+                                    <button onClick={()=>{messageref.current.value=msg.text; setUpdatemsgid(msg._id); setFollowupdate(pre=>!pre) }} className="rounded-2xl bg-blue-300 px-2 my-2 mr-2">Update</button>
+                                </div>
+                            }
+                            </td>
+                            <td>{msg.text}</td>
+                            </tr>
                         ))}
                     </tbody>
                 </table>
@@ -164,12 +218,15 @@ function Roomchat(){
             <div className="w-full bg-white flex flex-col justify-center items-center text-center">
                 <p>-------------------------------------------------------------------------</p>
                 <Input className="border rounded-2xl text-black px-3" label="Message" type="text" ref={messageref}/>
+                {followupdate && 
+                    <button onClick={()=>{messageref.current.value=""; setUpdatemsgid(""); setFollowupdate(pre=>!pre) }} className="rounded-2xl bg-blue-300 px-2 my-2">Cancel Update</button>
+                }
                 <div className="w-full bg-white flex justify-center items-center text-center">
                     <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={sendMessage}>send</button>
                     <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={deleteall}>delete all</button>
-                    <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={connectionClose}>close</button>
                 </div>
                 <div className="w-full bg-white flex justify-center items-center text-center">
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={connectionClose}>close</button>
                     <button className="rounded-2xl bg-blue-300 px-2 my-2" onClick={()=>{connectionClose();navigate("/chat")}}>Go to Rooms</button>
                 </div>
             </div>
