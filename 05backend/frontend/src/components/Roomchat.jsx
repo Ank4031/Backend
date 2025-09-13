@@ -223,7 +223,7 @@ function Roomchat(){
                 }
                 <div className="w-full bg-white flex justify-center items-center text-center">
                     <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={sendMessage}>send</button>
-                    <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={deleteall}>delete all</button>
+                    <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={deleteall}>Clear chat</button>
                 </div>
                 <div className="w-full bg-white flex justify-center items-center text-center">
                     <button className="rounded-2xl bg-blue-300 px-2 my-2 mr-2" onClick={connectionClose}>close</button>
