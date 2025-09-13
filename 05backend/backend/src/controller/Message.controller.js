@@ -65,4 +65,45 @@ const deleteAll = AsyncHandler(async(req,res)=>{
     .json(new ApiResponce(200,{},"all messages are deleted"))
 })
 
-export {addMessage, readMessage, deleteAll}
+const deleteMsg = AsyncHandler(async(req,res)=>{
+    const {msgid} = req.params
+
+    if(!msgid){
+        throw new ApiError(400,"message id is required")
+    }
+
+    const msgdel = await Message.findOneAndDelete({
+        _id:msgid
+    })
+
+    if(!msgdel){
+        throw new ApiError(400,"message is not deleted")
+    }
+
+    return res.status(200)
+    .json(new ApiResponce(200,{},"message is deleted"))
+
+})
+
+const updateMsg = AsyncHandler(async(req,res)=>{
+    const {msgid} = req.params
+    const {text} = req.body
+
+    const message = await Message.findByIdAndUpdate(
+        msgid,
+        {
+            $set:{
+                text
+            }
+        }
+    )
+
+    if(!message){
+        throw new ApiError(400,"message cannot be updated")
+    }
+
+    return res.status(200)
+    .json(new ApiResponce(200,{},"message is updated"))
+})
+
+export {addMessage, readMessage, deleteAll, deleteMsg, updateMsg}
