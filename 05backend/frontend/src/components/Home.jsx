@@ -19,7 +19,7 @@ function Home(){
         const check = async ()=>{
             // console.log("[*] fetching the data--------------------------->");
             
-            const res = await fetch("http://localhost:3000/api/v1/user/checklogin",{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/checklogin`,{
                 method:"GET",
                 credentials:"include"
             })

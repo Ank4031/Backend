@@ -16,7 +16,7 @@ function Login(){
     async function login(e){
         e.preventDefault();
         // console.log("username: ",usernameref.current.value);//-------------------------------------------->
-        const res = await fetch("http://localhost:3000/api/v1/user/login",{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/login`,{
             method:"POST",
             credentials: "include",
             headers:{

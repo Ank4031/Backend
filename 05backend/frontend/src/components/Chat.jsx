@@ -16,7 +16,7 @@ function Chat(){
 
     useEffect(()=>{
         const check = async ()=>{
-            const res = await fetch("http://localhost:3000/api/v1/user/checklogin",{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/checklogin`,{
                 method:"GET",
                 credentials:"include"
             })
@@ -31,7 +31,7 @@ function Chat(){
         check();
 
         const getrooms = async ()=>{
-            const res = await fetch("http://localhost:3000/api/v1/room/getrooms",{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/room/getrooms`,{
                 method:"GET",
                 credentials:"include"
             })
@@ -60,7 +60,7 @@ function Chat(){
         const code = passcode.current.value
         const name = roomname.current.value
         console.log("[*] code=>"+code+" name=>"+name);
-        const res = await fetch("http://localhost:3000/api/v1/room/joinroom",{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/room/joinroom`,{
             method:"POST",
             credentials:"include",
             headers:{
@@ -81,7 +81,7 @@ function Chat(){
     const deleteroom = async(id)=>{
         // console.log("[*] room id: ",id);
         
-        const res = await fetch(`http://localhost:3000/api/v1/room/delete/${id}`,{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/room/delete/${id}`,{
             method:"DELETE",
             credentials:"include"
         })

@@ -19,7 +19,7 @@ function Register(){
         const email = emailref.current.value;
         console.log("username: ",usernameref.current.value);
         
-        const res = await fetch("http://localhost:3000/api/v1/user/register",{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/register`,{
             method:"POST",
             headers:{
                 "Content-Type":"application/json"

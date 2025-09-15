@@ -25,7 +25,7 @@ function Roomchat(){
 
         //check if the user is logged in
         const check = async ()=>{
-            const res = await fetch("http://localhost:3000/api/v1/user/checklogin",{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/checklogin`,{
                 method:"GET",
                 credentials:"include"
             })
@@ -41,7 +41,7 @@ function Roomchat(){
 
         //get all the messages from the database for the rromid
         const readmessages = async()=>{
-            const res = await fetch(`http://localhost:3000/api/v1/message/read/${roomid}`,{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/message/read/${roomid}`,{
                 method:"GET",
                 credentials:"include"
             })
@@ -59,7 +59,7 @@ function Roomchat(){
 
         //get users for the roomid [NEED UPDATES FOR BETTER PERFORMANCE]
         const getUsers = async()=>{
-            const res = await fetch(`http://localhost:3000/api/v1/user/getusers`,{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/getusers`,{
                 method:"GET",
                 credentials:"include"
             })
@@ -75,7 +75,7 @@ function Roomchat(){
         getUsers()
 
         //start the websocket
-        ws.current = new WebSocket("ws://localhost:3000")
+        ws.current = new WebSocket(`ws://${import.meta.env.VITE_IP}:3000`)
 
         //open the connection
         ws.current.onopen = ()=>{
@@ -108,7 +108,7 @@ function Roomchat(){
         messageref.current.value=""
         if (followupdate){
             console.log("msgid=>"+updatemsgid+" text=>"+message);
-            const res = await fetch(`http://localhost:3000/api/v1/message/updatemsg/${updatemsgid}`,{
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/message/updatemsg/${updatemsgid}`,{
                 method:"PATCH",
                 credentials:"include",
                 headers:{
@@ -129,7 +129,7 @@ function Roomchat(){
             setFollowupdate(pre=>!pre)
         }else{
             const sendMsg = async()=>{
-                const res = await fetch(`http://localhost:3000/api/v1/message/add/${roomid}`,{
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/message/add/${roomid}`,{
                     method:"POST",
                     credentials:"include",
                     headers:{
@@ -162,7 +162,7 @@ function Roomchat(){
 
     //delete all the messages from the chat for all the user
     const deleteall = async()=>{
-        const res = await fetch(`http://localhost:3000/api/v1/message/deleteall/${roomid}`,{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/message/deleteall/${roomid}`,{
             method:"DELETE",
             credentials:"include"
         })
@@ -179,7 +179,7 @@ function Roomchat(){
 
     //delete message
     const deletemsg = async(msgid)=>{
-        const res = await fetch(`http://localhost:3000/api/v1/message/deletemsg/${msgid}`,{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/message/deletemsg/${msgid}`,{
             method:"DELETE",
             credentials:"include"
         })

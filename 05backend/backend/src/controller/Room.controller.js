@@ -151,7 +151,8 @@ const deleteroom = AsyncHandler(async(req,res)=>{
         console.log("deleting for the joined user");
         
         const deleteuserroom = await Joinedrooms.deleteMany({
-            user:req.user._id
+            user:req.user._id,
+            room:roomid
         })
 
         if(!deleteuserroom){

@@ -7,7 +7,7 @@ function Logout(){
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const logout = async()=>{
-        const res = await fetch("http://localhost:3000/api/v1/user/logout",{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/user/logout`,{
             method:"POST",
             credentials:"include"
         })
