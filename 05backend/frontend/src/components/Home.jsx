@@ -47,7 +47,7 @@ function Home(){
         const code = passcode.current.value
         const userid = user.data._id
         console.log("[*] form data: room => "+ room+" passocde => "+code+" userid => "+userid);
-        const res = await fetch(`http://localhost:3000/api/v1/room/create/${userid}`,{
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_PATH}/room/create/${userid}`,{
             method:"POST",
             credentials:"include",
             headers:{
