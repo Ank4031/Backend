@@ -49,7 +49,7 @@ const LoginUser = AsyncHandler(async(req,res)=>{
         $or: [{username}, {email}]
     })
 
-    console.log("[*] usre:",user);
+    // console.log("[*] user:",user);
 
     if(!user){
         throw new ApiError(400,"no such user exist")

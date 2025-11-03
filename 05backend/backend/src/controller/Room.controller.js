@@ -3,6 +3,7 @@ import { AsyncHandler } from "../Utilities/AsyncHandler.js";
 import { ApiResponce } from "../Utilities/ApiResponce.js";
 import { Room } from "../models/Room.model.js";
 import { Joinedrooms } from "../models/Joinedrooms.model.js";
+import redisClient, { getCache, setCache, delCache } from "../Utilities/Redis.js";
 
 const createRoom = AsyncHandler(async(req,res)=>{
     const {roomname,passcode} = req.body
@@ -97,19 +98,35 @@ const joinRoom = AsyncHandler(async(req,res)=>{
 
 const getRooms = AsyncHandler(async(req,res)=>{
     // console.log("[*] user: ",req.user._id);
-    
-    const rooms = await Joinedrooms.find({
-        user:req.user._id
-    })
-
-    // console.log("[*] room: ",rooms._id);
-    
-    if(!rooms){
-        throw new ApiError(400,"rooms cannot be fetched")
+    const cacheKey = `user:rooms:${req.user._id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+        console.log("Got the cache");
+        return res.status(200).json(new ApiResponce(200, cached, "all rooms are fetched (cache)"));
     }
+
+    const rooms = await Joinedrooms.find({ user: req.user._id }).lean();
+    if (!rooms) throw new ApiError(400, "rooms cannot be fetched");
+
+    // console.log("setting the cache:...................");
     
-    return res.status(200)
-    .json(new ApiResponce(200,rooms,"all rooms are fetched"))
+    await setCache(cacheKey, rooms, 6000); // cache 6000s (tweak as needed)
+    return res.status(200).json(new ApiResponce(200, rooms, "all rooms are fetched"));
+    
+
+    //without cache --------------------------------------
+    // const rooms = await Joinedrooms.find({
+    //     user:req.user._id
+    // })
+
+    // // console.log("[*] room: ",rooms._id);
+    
+    // if(!rooms){
+    //     throw new ApiError(400,"rooms cannot be fetched")
+    // }
+    
+    // return res.status(200)
+    // .json(new ApiResponce(200,rooms,"all rooms are fetched"))
 })
 
 const deleteroom = AsyncHandler(async(req,res)=>{
