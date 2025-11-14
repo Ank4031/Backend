@@ -6,28 +6,29 @@ import redisClient, { getCache, setCache, delCache } from "../Utilities/Redis.js
 
 
 const addMessage = AsyncHandler(async(req,res)=>{
-    const {roomid} = req.params
-    const {message, userid} = req.body
 
-    console.log("[*] user id: ",userid);
+    const { roomid } = req.params;
+    const { message, userid } = req.body;
 
-    if(!(roomid && message && userid)){
-        throw new ApiError(400,"message, roomid and userid are required")
+    console.log("[*] user id:", userid);
+
+    if (!(roomid && message && userid)) {
+        throw new ApiError(400, "message, roomid and userid are required");
     }
 
     const msg = await Message.create({
         sender: userid,
         text: message,
-        room: roomid
-    })
+        room: roomid,
+    });
 
-    if(!msg){
-        throw new ApiError(400,"message cannot send")
+    if (!msg) {
+        throw new ApiError(400, "message cannot send");
     }
 
-    const newmsg = await Message.findById(msg._id)
+    const newmsg = await Message.findById(msg._id);
 
-
+    // 🔄 Update Redis Cache for that room
     try {
         // Get existing cached messages if available
         const cacheKey = `messages:${roomid}`;
@@ -53,8 +54,34 @@ const addMessage = AsyncHandler(async(req,res)=>{
         console.error("⚠️ Redis cache update failed:", error.message);
     }
 
-    return res.status(200)
-    .json(new ApiResponce(200,newmsg,"message is stored"))
+    return res
+        .status(200)
+        .json(new ApiResponce(200, newmsg, "message is stored & cache updated"));
+
+
+    // const {roomid} = req.params
+    // const {message, userid} = req.body
+
+    // console.log("[*] user id: ",userid);
+
+    // if(!(roomid && message && userid)){
+    //     throw new ApiError(400,"message, roomid and userid are required")
+    // }
+
+    // const msg = await Message.create({
+    //     sender: userid,
+    //     text: message,
+    //     room: roomid
+    // })
+
+    // if(!msg){
+    //     throw new ApiError(400,"message cannot send")
+    // }
+
+    // const newmsg = await Message.findById(msg._id)
+
+    // return res.status(200)
+    // .json(new ApiResponce(200,newmsg,"message is stored"))
 })
 
 const readMessage = AsyncHandler(async(req,res)=>{
@@ -79,14 +106,14 @@ const readMessage = AsyncHandler(async(req,res)=>{
     }
 
     // Save in cache (TTL: 5 minutes)
-    await setCache(`messages:${roomid}`, messages, 30000);
+    await setCache(`messages:${roomid}`, messages, 300);
 
     return res
         .status(200)
         .json(new ApiResponce(200, messages, "all messages are fetched"));
 
 
-    //message read without redis cache
+    // message read without redis cache
     // const {roomid} = req.params
     // //check for roomid
     // if(!roomid){
@@ -106,7 +133,8 @@ const readMessage = AsyncHandler(async(req,res)=>{
     // .json(new ApiResponce(200,messages,"all messages are fetched"))
 })
 
-const deleteAll = AsyncHandler(async (req, res) => {
+const deleteAll = AsyncHandler(async(req,res)=>{
+
     const { roomid } = req.params;
     if (!roomid) {
         throw new ApiError(400, "room id is required");
@@ -123,9 +151,23 @@ const deleteAll = AsyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(new ApiResponce(200, {}, "all messages are deleted"));
-});
 
-const deleteMsg = AsyncHandler(async (req, res) => {
+    // const {roomid} = req.params
+    // if(!roomid){
+    //     throw new ApiError(400,"room id is required")
+    // }
+
+    // const del = await Message.deleteMany({room:roomid})
+    // if(!del){
+    //     throw new ApiError(400,"messages cannot be deleted")
+    // }
+
+    // return res.status(200)
+    // .json(new ApiResponce(200,{},"all messages are deleted"))
+})
+
+const deleteMsg = AsyncHandler(async(req,res)=>{
+
     const { msgid } = req.params;
 
     if (!msgid) {
@@ -147,7 +189,7 @@ const deleteMsg = AsyncHandler(async (req, res) => {
         if (cached) {
             const parsed = typeof cached === "string" ? JSON.parse(cached) : cached;
             const updated = parsed.filter((m) => m._id !== msgid);
-            await setCache(cacheKey, updated, 3000);
+            await setCache(cacheKey, updated, 300);
             console.log(`🗑️ Cache updated after deleting message in room: ${msgdel.room}`);
         } else {
             // If no cache, just ignore
@@ -158,9 +200,28 @@ const deleteMsg = AsyncHandler(async (req, res) => {
     }
 
     return res.status(200).json(new ApiResponce(200, {}, "message is deleted"));
-});
 
-const updateMsg = AsyncHandler(async (req, res) => {
+    // const {msgid} = req.params
+
+    // if(!msgid){
+    //     throw new ApiError(400,"message id is required")
+    // }
+
+    // const msgdel = await Message.findOneAndDelete({
+    //     _id:msgid
+    // })
+
+    // if(!msgdel){
+    //     throw new ApiError(400,"message is not deleted")
+    // }
+
+    // return res.status(200)
+    // .json(new ApiResponce(200,{},"message is deleted"))
+
+})
+
+const updateMsg = AsyncHandler(async(req,res)=>{
+
     const { msgid } = req.params;
     const { text } = req.body;
 
@@ -184,7 +245,7 @@ const updateMsg = AsyncHandler(async (req, res) => {
             const updated = parsed.map((m) =>
                 m._id === msgid ? { ...m, text: message.text } : m
             );
-            await setCache(cacheKey, updated, 3000);
+            await setCache(cacheKey, updated, 300);
             console.log(`✏️ Cache updated after message update in room: ${message.room}`);
         } else {
             console.log("ℹ️ No cache found to update after message edit");
@@ -194,6 +255,25 @@ const updateMsg = AsyncHandler(async (req, res) => {
     }
 
     return res.status(200).json(new ApiResponce(200, message, "message is updated"));
-});
+
+    // const {msgid} = req.params
+    // const {text} = req.body
+
+    // const message = await Message.findByIdAndUpdate(
+    //     msgid,
+    //     {
+    //         $set:{
+    //             text
+    //         }
+    //     }
+    // )
+
+    // if(!message){
+    //     throw new ApiError(400,"message cannot be updated")
+    // }
+
+    // return res.status(200)
+    // .json(new ApiResponce(200,{},"message is updated"))
+})
 
 export {addMessage, readMessage, deleteAll, deleteMsg, updateMsg}

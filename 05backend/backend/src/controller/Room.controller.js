@@ -3,6 +3,7 @@ import { AsyncHandler } from "../Utilities/AsyncHandler.js";
 import { ApiResponce } from "../Utilities/ApiResponce.js";
 import { Room } from "../models/Room.model.js";
 import { Joinedrooms } from "../models/Joinedrooms.model.js";
+import { withRetry } from "../resilience wrappers/RetryPattern.js";
 import redisClient, { getCache, setCache, delCache } from "../Utilities/Redis.js";
 
 const createRoom = AsyncHandler(async(req,res)=>{
@@ -13,9 +14,9 @@ const createRoom = AsyncHandler(async(req,res)=>{
     }
 
     //check if the room already exist
-    const currroom = await Room.findOne({
+    const currroom = await withRetry(()=>Room.findOne({
         name: roomname
-    })
+    }))
 
     if(currroom){
         throw new ApiError(400,"room already exist use a different name")
@@ -33,11 +34,11 @@ const createRoom = AsyncHandler(async(req,res)=>{
     }
 
     //join the new room
-    const joinroom = await Joinedrooms.create({
+    const joinroom = await withRetry(()=>Joinedrooms.create({
         name:room.name,
         room: room._id,
         user: userid
-    })
+    }))
 
     if(!joinroom){
         throw new ApiError(400,"cannot join a room")
@@ -48,64 +49,110 @@ const createRoom = AsyncHandler(async(req,res)=>{
 })
 
 const joinRoom = AsyncHandler(async(req,res)=>{
-    const {passcode, roomname} = req.body
-    
-    //check for passcode
-    if(!passcode){
-        throw new ApiError(400,"passcode is required")
+
+    const { passcode, roomname } = req.body;
+
+    if (!passcode) {
+        throw new ApiError(400, "passcode is required");
     }
 
-    //check if room exist
-    const room = await Room.findOne({
-        name:roomname
-    })
-
-    if(!room){
-        throw new ApiError(400,"no room available with this name")
+    // Check if room exists
+    const room = await withRetry(()=>Room.findOne({ name: roomname }));
+    if (!room) {
+        throw new ApiError(400, "no room available with this name");
     }
 
-    console.log("[*] join room: ",room._id);
+    console.log("[*] join room:", room._id);
 
-    //check if passcode is correct
-    if(!(await room.checkPasscode(passcode))){
-        throw new ApiError(400,"passcode is incorrect")
+    // Check passcode
+    if (!(await room.checkPasscode(passcode))) {
+        throw new ApiError(400, "passcode is incorrect");
     }
 
-    //check if user already joined
-    const joinedroom = await Joinedrooms.find({
-        $and:[{room:room._id}, 
-        {user:req.user._id}]
-    })
-    console.log(joinedroom);
-    if(joinedroom.length > 0){
-        throw new ApiError(400,"room already joined")
+    // Check if already joined
+    const joinedroom = await withRetry(()=>Joinedrooms.find({
+        $and: [{ room: room._id }, { user: req.user._id }]
+    }));
+    if (joinedroom.length > 0) {
+        throw new ApiError(400, "room already joined");
     }
 
-    //Join the room
+    // Join the room
     const joinroom = await Joinedrooms.create({
-        name:room.name,
-        room:room._id,
-        user:req.user._id
-    })
+        name: room.name,
+        room: room._id,
+        user: req.user._id
+    });
 
-    if(!joinroom){
-        throw new ApiError(400,"cannot join the room")
+    if (!joinroom) {
+        throw new ApiError(400, "cannot join the room");
     }
+
+    // 🧹 Invalidate user's cached rooms
+    await withRetry(()=>delCache(`user:rooms:${req.user._id}`));
 
     return res.status(200)
-    .json(new ApiResponce(200,{},"room joined successfully"))
+        .json(new ApiResponce(200, {}, "room joined successfully"));
+
+    //without cache --------------------------------------
+    // const {passcode, roomname} = req.body
+    
+    // //check for passcode
+    // if(!passcode){
+    //     throw new ApiError(400,"passcode is required")
+    // }
+
+    // //check if room exist
+    // const room = await Room.findOne({
+    //     name:roomname
+    // })
+
+    // if(!room){
+    //     throw new ApiError(400,"no room available with this name")
+    // }
+
+    // console.log("[*] join room: ",room._id);
+
+    // //check if passcode is correct
+    // if(!(await room.checkPasscode(passcode))){
+    //     throw new ApiError(400,"passcode is incorrect")
+    // }
+
+    // //check if user already joined
+    // const joinedroom = await Joinedrooms.find({
+    //     $and:[{room:room._id}, 
+    //     {user:req.user._id}]
+    // })
+    // console.log(joinedroom);
+    // if(joinedroom.length > 0){
+    //     throw new ApiError(400,"room already joined")
+    // }
+
+    // //Join the room
+    // const joinroom = await Joinedrooms.create({
+    //     name:room.name,
+    //     room:room._id,
+    //     user:req.user._id
+    // })
+
+    // if(!joinroom){
+    //     throw new ApiError(400,"cannot join the room")
+    // }
+
+    // return res.status(200)
+    // .json(new ApiResponce(200,{},"room joined successfully"))
 })
 
 const getRooms = AsyncHandler(async(req,res)=>{
-    // console.log("[*] user: ",req.user._id);
+    console.log("[*] user: ",req.user._id);
     const cacheKey = `user:rooms:${req.user._id}`;
-    const cached = await getCache(cacheKey);
+    const cached = await withRetry(()=>getCache(cacheKey));
     if (cached) {
         console.log("Got the cache");
         return res.status(200).json(new ApiResponce(200, cached, "all rooms are fetched (cache)"));
     }
 
-    const rooms = await Joinedrooms.find({ user: req.user._id }).lean();
+    const rooms = await withRetry(()=>Joinedrooms.find({ user: req.user._id })).lean();
     if (!rooms) throw new ApiError(400, "rooms cannot be fetched");
 
     // console.log("setting the cache:...................");
@@ -130,55 +177,105 @@ const getRooms = AsyncHandler(async(req,res)=>{
 })
 
 const deleteroom = AsyncHandler(async(req,res)=>{
-    const {roomid} = req.params
-    if(!roomid){
-        throw new ApiError(400,"user id is required")
+
+
+    const { roomid } = req.params;
+    if (!roomid) {
+        throw new ApiError(400, "room id is required");
     }
 
-    const room = await Room.findById({
-        _id:roomid
-    })
-
-    if(!room){
-        throw new ApiError(400,"no such room exist")
+    const room = await withRetry(()=>Room.findById(roomid));
+    if (!room) {
+        throw new ApiError(400, "no such room exist");
     }
 
-    if(room.creator.toString() === req.user._id.toString()){
-        console.log("deleting for the creator");
-        
-        const deleteuserroom = await Joinedrooms.deleteMany({
-            room:roomid
-        })
-        if(!deleteuserroom){
-            throw new ApiError(400,"cannot delete room")
+    if (room.creator.toString() === req.user._id.toString()) {
+        console.log("Deleting for creator...");
+
+        const deleteuserroom = await withRetry(()=>Joinedrooms.deleteMany({ room: roomid }));
+        if (!deleteuserroom) {
+            throw new ApiError(400, "cannot delete room");
         }
 
-        const deleteownerroom = await Room.deleteOne({
-            _id:roomid,
-        }) 
-
-        if(!deleteownerroom){
-            throw new ApiError(400,"cannot delete the room from origin")
+        const deleteownerroom = await withRetry(()=>Room.deleteOne({ _id: roomid }));
+        if (!deleteownerroom) {
+            throw new ApiError(400, "cannot delete the room from origin");
         }
+
+        await withRetry(()=>delCache(`user:rooms:${req.user._id}`));
 
         return res.status(200)
-        .json(new ApiResponce(200,{},"room deleted"))
+            .json(new ApiResponce(200, {}, "room deleted"));
 
-    }else{
-        console.log("deleting for the joined user");
-        
+    } else {
+        console.log("Deleting for joined user...");
+
         const deleteuserroom = await Joinedrooms.deleteMany({
-            user:req.user._id,
-            room:roomid
-        })
+            user: req.user._id,
+            room: roomid
+        });
 
-        if(!deleteuserroom){
-            throw new ApiError(400,"cannot delete room")
+        if (!deleteuserroom) {
+            throw new ApiError(400, "cannot delete room");
         }
 
+        // 🧹 Invalidate cache for this user
+        await withRetry(()=>delCache(`user:rooms:${req.user._id}`));
+
         return res.status(200)
-        .json(new ApiResponce(200,{},"room deleted from joined rooms"))
+            .json(new ApiResponce(200, {}, "room deleted from joined rooms"));
     }
+
+    //without cache --------------------------------------
+    // const {roomid} = req.params
+    // if(!roomid){
+    //     throw new ApiError(400,"user id is required")
+    // }
+
+    // const room = await Room.findById({
+    //     _id:roomid
+    // })
+
+    // if(!room){
+    //     throw new ApiError(400,"no such room exist")
+    // }
+
+    // if(room.creator.toString() === req.user._id.toString()){
+    //     console.log("deleting for the creator");
+        
+    //     const deleteuserroom = await Joinedrooms.deleteMany({
+    //         room:roomid
+    //     })
+    //     if(!deleteuserroom){
+    //         throw new ApiError(400,"cannot delete room")
+    //     }
+
+    //     const deleteownerroom = await Room.deleteOne({
+    //         _id:roomid,
+    //     }) 
+
+    //     if(!deleteownerroom){
+    //         throw new ApiError(400,"cannot delete the room from origin")
+    //     }
+
+    //     return res.status(200)
+    //     .json(new ApiResponce(200,{},"room deleted"))
+
+    // }else{
+    //     console.log("deleting for the joined user");
+        
+    //     const deleteuserroom = await Joinedrooms.deleteMany({
+    //         user:req.user._id,
+    //         room:roomid
+    //     })
+
+    //     if(!deleteuserroom){
+    //         throw new ApiError(400,"cannot delete room")
+    //     }
+
+    //     return res.status(200)
+    //     .json(new ApiResponce(200,{},"room deleted from joined rooms"))
+    // }
 
 })
 

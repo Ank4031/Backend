@@ -1,7 +1,9 @@
 import {createClient} from "redis"
+import dotenv from "dotenv"
+dotenv.config()
 
 const redisClient = createClient({
-    url : "redis://default:QPLBW86dzIJX998UdR8STklRBR7IiBvP@redis-10010.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:10010"
+    url : `redis://default:${process.env.REDIS_ADD}@redis-10010.crce206.ap-south-1-1.ec2.redns.redis-cloud.com:10010`
 })
 
 redisClient.on("error", (e)=> console.error("Redis error", e));
