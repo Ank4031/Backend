@@ -25,6 +25,8 @@ function Home(){
             })
             // console.log(res.ok);
             if(!res.ok){
+                console.log("[*] problem in the checklogin");
+                
                 navigate("/login")
             }else{
                 const data = await res.json();

@@ -7,8 +7,8 @@ dotenv.config()
 
 export const UserVerify = AsyncHandler( async(req,res,next)=>{
     try{
-        // console.log("[*] token: ",req.cookies);
-        // console.log("-------------------------------------------------------");
+        console.log("[*] token: ",req.cookies);
+        console.log("-------------------------------------------------------");
         
         // console.log("[*] header: ",req.header);
         // console.log("-------------------------------------------------------");

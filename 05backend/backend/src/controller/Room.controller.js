@@ -4,9 +4,10 @@ import { ApiResponce } from "../Utilities/ApiResponce.js";
 import { Room } from "../models/Room.model.js";
 import { Joinedrooms } from "../models/Joinedrooms.model.js";
 import { withRetry } from "../resilience wrappers/RetryPattern.js";
+import { circuitBreaker } from "../resilience wrappers/CircuitBreaker.js";
 import redisClient, { getCache, setCache, delCache } from "../Utilities/Redis.js";
 
-const createRoom = AsyncHandler(async(req,res)=>{
+const createRoom = AsyncHandler(circuitBreaker(async(req,res)=>{
     const {roomname,passcode} = req.body
     const {userid} = req.params
     if(!roomname){
@@ -14,9 +15,9 @@ const createRoom = AsyncHandler(async(req,res)=>{
     }
 
     //check if the room already exist
-    const currroom = await withRetry(()=>Room.findOne({
+    const currroom = await Room.findOne({
         name: roomname
-    }))
+    })
 
     if(currroom){
         throw new ApiError(400,"room already exist use a different name")
@@ -34,11 +35,11 @@ const createRoom = AsyncHandler(async(req,res)=>{
     }
 
     //join the new room
-    const joinroom = await withRetry(()=>Joinedrooms.create({
+    const joinroom = await Joinedrooms.create({
         name:room.name,
         room: room._id,
         user: userid
-    }))
+    })
 
     if(!joinroom){
         throw new ApiError(400,"cannot join a room")
@@ -46,9 +47,23 @@ const createRoom = AsyncHandler(async(req,res)=>{
 
     return res.status(200)
     .json(new ApiResponce(200,{},"new room created"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const joinRoom = AsyncHandler(async(req,res)=>{
+const joinRoom = AsyncHandler(circuitBreaker(async(req,res)=>{
 
     const { passcode, roomname } = req.body;
 
@@ -57,7 +72,7 @@ const joinRoom = AsyncHandler(async(req,res)=>{
     }
 
     // Check if room exists
-    const room = await withRetry(()=>Room.findOne({ name: roomname }));
+    const room = await Room.findOne({ name: roomname });
     if (!room) {
         throw new ApiError(400, "no room available with this name");
     }
@@ -70,9 +85,9 @@ const joinRoom = AsyncHandler(async(req,res)=>{
     }
 
     // Check if already joined
-    const joinedroom = await withRetry(()=>Joinedrooms.find({
+    const joinedroom = await Joinedrooms.find({
         $and: [{ room: room._id }, { user: req.user._id }]
-    }));
+    });
     if (joinedroom.length > 0) {
         throw new ApiError(400, "room already joined");
     }
@@ -141,18 +156,32 @@ const joinRoom = AsyncHandler(async(req,res)=>{
 
     // return res.status(200)
     // .json(new ApiResponce(200,{},"room joined successfully"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const getRooms = AsyncHandler(async(req,res)=>{
+const getRooms = AsyncHandler(circuitBreaker(async(req,res)=>{
     console.log("[*] user: ",req.user._id);
     const cacheKey = `user:rooms:${req.user._id}`;
-    const cached = await withRetry(()=>getCache(cacheKey));
+    const cached = await getCache(cacheKey);
     if (cached) {
         console.log("Got the cache");
         return res.status(200).json(new ApiResponce(200, cached, "all rooms are fetched (cache)"));
     }
 
-    const rooms = await withRetry(()=>Joinedrooms.find({ user: req.user._id })).lean();
+    const rooms = await Joinedrooms.find({ user: req.user._id }).lean();
     if (!rooms) throw new ApiError(400, "rooms cannot be fetched");
 
     // console.log("setting the cache:...................");
@@ -174,9 +203,23 @@ const getRooms = AsyncHandler(async(req,res)=>{
     
     // return res.status(200)
     // .json(new ApiResponce(200,rooms,"all rooms are fetched"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const deleteroom = AsyncHandler(async(req,res)=>{
+const deleteroom = AsyncHandler(circuitBreaker(async(req,res)=>{
 
 
     const { roomid } = req.params;
@@ -184,7 +227,7 @@ const deleteroom = AsyncHandler(async(req,res)=>{
         throw new ApiError(400, "room id is required");
     }
 
-    const room = await withRetry(()=>Room.findById(roomid));
+    const room = await Room.findById(roomid);
     if (!room) {
         throw new ApiError(400, "no such room exist");
     }
@@ -192,17 +235,17 @@ const deleteroom = AsyncHandler(async(req,res)=>{
     if (room.creator.toString() === req.user._id.toString()) {
         console.log("Deleting for creator...");
 
-        const deleteuserroom = await withRetry(()=>Joinedrooms.deleteMany({ room: roomid }));
+        const deleteuserroom = await Joinedrooms.deleteMany({ room: roomid });
         if (!deleteuserroom) {
             throw new ApiError(400, "cannot delete room");
         }
 
-        const deleteownerroom = await withRetry(()=>Room.deleteOne({ _id: roomid }));
+        const deleteownerroom = await Room.deleteOne({ _id: roomid });
         if (!deleteownerroom) {
             throw new ApiError(400, "cannot delete the room from origin");
         }
 
-        await withRetry(()=>delCache(`user:rooms:${req.user._id}`));
+        await delCache(`user:rooms:${req.user._id}`);
 
         return res.status(200)
             .json(new ApiResponce(200, {}, "room deleted"));
@@ -220,7 +263,7 @@ const deleteroom = AsyncHandler(async(req,res)=>{
         }
 
         // 🧹 Invalidate cache for this user
-        await withRetry(()=>delCache(`user:rooms:${req.user._id}`));
+        await delCache(`user:rooms:${req.user._id}`);
 
         return res.status(200)
             .json(new ApiResponce(200, {}, "room deleted from joined rooms"));
@@ -277,6 +320,20 @@ const deleteroom = AsyncHandler(async(req,res)=>{
     //     .json(new ApiResponce(200,{},"room deleted from joined rooms"))
     // }
 
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
 export {createRoom, getRooms, joinRoom, deleteroom}

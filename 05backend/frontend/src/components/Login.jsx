@@ -29,11 +29,13 @@ function Login(){
         
         if(!res.ok){
             const errordata = await res.json().catch(()=>{});
-            console.log(errordata);
+            console.log("[*] login failed");
             setError(errordata.message || "Something went wrong login-1")
         }else{
             const data = await res.json();
-            // console.log("[*] user data: ",data); //----------------------------------------------------->
+            console.log("[*] login successful"); //----------------------------------------------------->
+            console.log(data);
+            
             dispatch(loginUser(data));
             navigate("/")
         }
