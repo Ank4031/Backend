@@ -3,9 +3,10 @@ import { ApiResponce } from "../Utilities/ApiResponce.js"
 import { AsyncHandler } from "../Utilities/AsyncHandler.js"
 import { Message } from "../models/Message.model.js"
 import redisClient, { getCache, setCache, delCache } from "../Utilities/Redis.js";
+import { circuitBreaker } from "../resilience wrappers/CircuitBreaker.js";
 
 
-const addMessage = AsyncHandler(async(req,res)=>{
+const addMessage = AsyncHandler(circuitBreaker(async(req,res)=>{
 
     const { roomid } = req.params;
     const { message, userid } = req.body;
@@ -58,7 +59,7 @@ const addMessage = AsyncHandler(async(req,res)=>{
         .status(200)
         .json(new ApiResponce(200, newmsg, "message is stored & cache updated"));
 
-
+    //without caching
     // const {roomid} = req.params
     // const {message, userid} = req.body
 
@@ -82,9 +83,23 @@ const addMessage = AsyncHandler(async(req,res)=>{
 
     // return res.status(200)
     // .json(new ApiResponce(200,newmsg,"message is stored"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const readMessage = AsyncHandler(async(req,res)=>{
+const readMessage = AsyncHandler(circuitBreaker(async(req,res)=>{
     const { roomid } = req.params;
     if (!roomid) {
         throw new ApiError(400, "roomid is needed");
@@ -131,9 +146,23 @@ const readMessage = AsyncHandler(async(req,res)=>{
 
     // return res.status(200)
     // .json(new ApiResponce(200,messages,"all messages are fetched"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const deleteAll = AsyncHandler(async(req,res)=>{
+const deleteAll = AsyncHandler(circuitBreaker(async(req,res)=>{
 
     const { roomid } = req.params;
     if (!roomid) {
@@ -152,6 +181,7 @@ const deleteAll = AsyncHandler(async(req,res)=>{
     return res.status(200)
         .json(new ApiResponce(200, {}, "all messages are deleted"));
 
+    //without cache
     // const {roomid} = req.params
     // if(!roomid){
     //     throw new ApiError(400,"room id is required")
@@ -164,9 +194,23 @@ const deleteAll = AsyncHandler(async(req,res)=>{
 
     // return res.status(200)
     // .json(new ApiResponce(200,{},"all messages are deleted"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const deleteMsg = AsyncHandler(async(req,res)=>{
+const deleteMsg = AsyncHandler(circuitBreaker(async(req,res)=>{
 
     const { msgid } = req.params;
 
@@ -201,6 +245,7 @@ const deleteMsg = AsyncHandler(async(req,res)=>{
 
     return res.status(200).json(new ApiResponce(200, {}, "message is deleted"));
 
+    //without cache
     // const {msgid} = req.params
 
     // if(!msgid){
@@ -218,9 +263,23 @@ const deleteMsg = AsyncHandler(async(req,res)=>{
     // return res.status(200)
     // .json(new ApiResponce(200,{},"message is deleted"))
 
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
-const updateMsg = AsyncHandler(async(req,res)=>{
+const updateMsg = AsyncHandler(circuitBreaker(async(req,res)=>{
 
     const { msgid } = req.params;
     const { text } = req.body;
@@ -256,6 +315,7 @@ const updateMsg = AsyncHandler(async(req,res)=>{
 
     return res.status(200).json(new ApiResponce(200, message, "message is updated"));
 
+    //without cache
     // const {msgid} = req.params
     // const {text} = req.body
 
@@ -274,6 +334,20 @@ const updateMsg = AsyncHandler(async(req,res)=>{
 
     // return res.status(200)
     // .json(new ApiResponce(200,{},"message is updated"))
-})
+},{
+    retries: 2,
+    retryDelay: 300,
+    failureThreshold: 3,
+    timeout: 5000,
+    fallback: (req, res) => {
+        return res.status(503).json({
+            success: false,
+            message: "Service temporarily unavailable (fallback)"
+        });
+    },
+    isNetworkError: (err) =>
+        ["MongoNetworkError", "MongooseServerSelectionError", "ECONNRESET", "ETIMEDOUT"]
+            .includes(err.name)
+}))
 
 export {addMessage, readMessage, deleteAll, deleteMsg, updateMsg}
